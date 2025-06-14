@@ -21,6 +21,9 @@ LPBAM/LpbamAp1/lpbam_lpbamap1_config.o: \
  ../Drivers/STM32U5xx_HAL_Driver/Inc/stm32u5xx_hal_dma.h \
  ../Drivers/STM32U5xx_HAL_Driver/Inc/stm32u5xx_hal_dma_ex.h \
  ../Drivers/STM32U5xx_HAL_Driver/Inc/stm32u5xx_hal_cortex.h \
+ ../Drivers/STM32U5xx_HAL_Driver/Inc/stm32u5xx_hal_adc.h \
+ ../Drivers/STM32U5xx_HAL_Driver/Inc/stm32u5xx_ll_adc.h \
+ ../Drivers/STM32U5xx_HAL_Driver/Inc/stm32u5xx_hal_adc_ex.h \
  ../Drivers/STM32U5xx_HAL_Driver/Inc/stm32u5xx_hal_flash.h \
  ../Drivers/STM32U5xx_HAL_Driver/Inc/stm32u5xx_hal_flash_ex.h \
  ../Drivers/STM32U5xx_HAL_Driver/Inc/stm32u5xx_hal_pwr.h \
@@ -31,6 +34,8 @@ LPBAM/LpbamAp1/lpbam_lpbamap1_config.o: \
  ../Drivers/STM32U5xx_HAL_Driver/Inc/stm32u5xx_hal_tim_ex.h \
  ../Drivers/STM32U5xx_HAL_Driver/Inc/stm32u5xx_hal_uart.h \
  ../Drivers/STM32U5xx_HAL_Driver/Inc/stm32u5xx_hal_uart_ex.h \
+ ../Drivers/STM32U5xx_HAL_Driver/Inc/stm32u5xx_hal_hcd.h \
+ ../Drivers/STM32U5xx_HAL_Driver/Inc/stm32u5xx_ll_usb.h \
  ../Drivers/STM32U5xx_HAL_Driver/Inc/stm32u5xx_hal_exti.h \
  ../Drivers/STM32U5xx_HAL_Driver/Inc/stm32u5xx_hal_ramcfg.h \
  ../Drivers/BSP/STM32U5xx_Nucleo/stm32u5xx_nucleo.h \
@@ -62,6 +67,9 @@ LPBAM/LpbamAp1/lpbam_lpbamap1_config.o: \
 ../Drivers/STM32U5xx_HAL_Driver/Inc/stm32u5xx_hal_dma.h:
 ../Drivers/STM32U5xx_HAL_Driver/Inc/stm32u5xx_hal_dma_ex.h:
 ../Drivers/STM32U5xx_HAL_Driver/Inc/stm32u5xx_hal_cortex.h:
+../Drivers/STM32U5xx_HAL_Driver/Inc/stm32u5xx_hal_adc.h:
+../Drivers/STM32U5xx_HAL_Driver/Inc/stm32u5xx_ll_adc.h:
+../Drivers/STM32U5xx_HAL_Driver/Inc/stm32u5xx_hal_adc_ex.h:
 ../Drivers/STM32U5xx_HAL_Driver/Inc/stm32u5xx_hal_flash.h:
 ../Drivers/STM32U5xx_HAL_Driver/Inc/stm32u5xx_hal_flash_ex.h:
 ../Drivers/STM32U5xx_HAL_Driver/Inc/stm32u5xx_hal_pwr.h:
@@ -72,6 +80,8 @@ LPBAM/LpbamAp1/lpbam_lpbamap1_config.o: \
 ../Drivers/STM32U5xx_HAL_Driver/Inc/stm32u5xx_hal_tim_ex.h:
 ../Drivers/STM32U5xx_HAL_Driver/Inc/stm32u5xx_hal_uart.h:
 ../Drivers/STM32U5xx_HAL_Driver/Inc/stm32u5xx_hal_uart_ex.h:
+../Drivers/STM32U5xx_HAL_Driver/Inc/stm32u5xx_hal_hcd.h:
+../Drivers/STM32U5xx_HAL_Driver/Inc/stm32u5xx_ll_usb.h:
 ../Drivers/STM32U5xx_HAL_Driver/Inc/stm32u5xx_hal_exti.h:
 ../Drivers/STM32U5xx_HAL_Driver/Inc/stm32u5xx_hal_ramcfg.h:
 ../Drivers/BSP/STM32U5xx_Nucleo/stm32u5xx_nucleo.h:

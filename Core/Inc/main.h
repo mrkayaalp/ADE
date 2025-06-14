@@ -29,7 +29,6 @@ extern "C" {
 /* Includes ------------------------------------------------------------------*/
 #include "stm32u5xx_hal.h"
 #include "stm32u5xx_nucleo.h"
-#include <stdio.h>
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
@@ -59,8 +58,10 @@ void Error_Handler(void);
 /* USER CODE END EFP */
 
 /* Private defines -----------------------------------------------------------*/
-#define LR_Select_Pin GPIO_PIN_2
-#define LR_Select_GPIO_Port GPIOE
+#define m1_lr_sel_Pin GPIO_PIN_2
+#define m1_lr_sel_GPIO_Port GPIOE
+#define m2_lr_sel_Pin GPIO_PIN_2
+#define m2_lr_sel_GPIO_Port GPIOB
 
 /* USER CODE BEGIN Private defines */
 

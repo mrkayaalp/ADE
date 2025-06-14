@@ -11,6 +11,7 @@ RM := rm -rf
 -include sources.mk
 -include Utilities/lpbam/STM32U5/subdir.mk
 -include Utilities/lpbam/subdir.mk
+-include Middlewares/ST/usbx/common/core/src/subdir.mk
 -include LPBAM/LpbamAp1/subdir.mk
 -include Drivers/STM32U5xx_HAL_Driver/Src/subdir.mk
 -include Drivers/BSP/STM32U5xx_Nucleo/subdir.mk
@@ -65,7 +66,7 @@ main-build: ADE.elf secondary-outputs
 
 # Tool invocations
 ADE.elf ADE.map: $(OBJS) $(USER_OBJS) C:\Users\Burak\Documents\AcusticDirection_ws\ADE\STM32U575ZITXQ_FLASH.ld makefile objects.list $(OPTIONAL_TOOL_DEPS)
-	arm-none-eabi-gcc -o "ADE.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m33 -T"C:\Users\Burak\Documents\AcusticDirection_ws\ADE\STM32U575ZITXQ_FLASH.ld" --specs=nosys.specs -Wl,-Map="ADE.map" -Wl,--gc-sections -static --specs=nano.specs -mfpu=fpv5-sp-d16 -mfloat-abi=hard -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
+	arm-none-eabi-gcc -o "ADE.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m33 -T"C:\Users\Burak\Documents\AcusticDirection_ws\ADE\STM32U575ZITXQ_FLASH.ld" --specs=nosys.specs -Wl,-Map="ADE.map" -Wl,--gc-sections -static --specs=nano.specs -mfpu=fpv5-sp-d16 -mfloat-abi=hard -mthumb -u _printf_float -u _scanf_float -Wl,--start-group -lc -lm -Wl,--end-group
 	@echo 'Finished building target: $@'
 	@echo ' '
 

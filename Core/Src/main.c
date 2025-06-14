@@ -18,10 +18,13 @@
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
+#include "adc.h"
 #include "gpdma.h"
 #include "icache.h"
 #include "memorymap.h"
 #include "sai.h"
+#include "usart.h"
+#include "usb_otg.h"
 #include "gpio.h"
 
 /* Private includes ----------------------------------------------------------*/
@@ -37,7 +40,8 @@
 
 uint16_t audio_buffer[AUDIO_BUFFER_SIZE];
 int l_sample, r_sample;
-
+uint8_t serial_Buffer[50];
+uint32_t timestamp;
 /* USER CODE END PTD */
 
 /* Private define ------------------------------------------------------------*/
@@ -50,8 +54,12 @@ void Write_Data_Func(int data);
 
 
 void HAL_SAI_RxCpltCallback(SAI_HandleTypeDef *hsai){
+
+  timestamp = HAL_GetTick();
   l_sample = (int) (audio_buffer[0] << 16) | (audio_buffer[1]);
   r_sample = (int) (audio_buffer[2] << 16) | (audio_buffer[3]);
+  sprintf(serial_Buffer, "left=%d,right=%d,%lu\n", l_sample, r_sample,timestamp);
+  HAL_UART_Transmit(&huart1, serial_Buffer, strlen(serial_Buffer), 250);
 }
 
 
@@ -67,8 +75,6 @@ void HAL_SAI_RxCpltCallback(SAI_HandleTypeDef *hsai){
 /* USER CODE END PM */
 
 /* Private variables ---------------------------------------------------------*/
-
-COM_InitTypeDef BspCOMInit;
 
 /* USER CODE BEGIN PV */
 
@@ -121,6 +127,9 @@ int main(void)
   MX_GPDMA1_Init();
   MX_ICACHE_Init();
   MX_SAI1_Init();
+  MX_USB_OTG_FS_HCD_Init();
+  MX_USART1_UART_Init();
+  MX_ADC1_Init();
   /* USER CODE BEGIN 2 */
 
   /* USER CODE END 2 */
@@ -133,20 +142,12 @@ int main(void)
   /* Initialize USER push-button, will be used to trigger an interrupt each time it's pressed.*/
   BSP_PB_Init(BUTTON_USER, BUTTON_MODE_EXTI);
 
-  /* Initialize COM1 port (115200, 8 bits (7-bit data + 1 stop bit), no parity */
-  BspCOMInit.BaudRate   = 115200;
-  BspCOMInit.WordLength = COM_WORDLENGTH_8B;
-  BspCOMInit.StopBits   = COM_STOPBITS_1;
-  BspCOMInit.Parity     = COM_PARITY_NONE;
-  BspCOMInit.HwFlowCtl  = COM_HWCONTROL_NONE;
-  if (BSP_COM_Init(COM1, &BspCOMInit) != BSP_ERROR_NONE)
-  {
-    Error_Handler();
-  }
-
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
-  HAL_GPIO_WritePin(LR_Select_GPIO_Port, LR_Select_Pin, GPIO_PIN_RESET);
+
+  // Set Mics SAI1 A Left and Right
+  HAL_GPIO_WritePin(m1_lr_sel_GPIO_Port, m1_lr_sel_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(m2_lr_sel_GPIO_Port, m2_lr_sel_Pin, GPIO_PIN_SET);
 
   if (HAL_SAI_Receive_DMA(&hsai_BlockA1, audio_buffer, AUDIO_BUFFER_SIZE) != HAL_OK)
   {
@@ -156,8 +157,10 @@ int main(void)
   
   while (1)
   {
-  
-       printf("hello world\n");
+
+//	   sprintf(serial_Buffer, "left=%d,right=%d\n", l_sample, r_sample);
+//	   HAL_UART_Transmit(hcom_uart, serial_Buffer, strlen(serial_Buffer), 250);
+       //printf("hello world\n");
 	   HAL_Delay(500);
     /* USER CODE END WHILE */
 
@@ -184,7 +187,11 @@ void SystemClock_Config(void)
 
   /** Initializes the CPU, AHB and APB buses clocks
   */
-  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_MSI;
+  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSI48|RCC_OSCILLATORTYPE_HSI
+                              |RCC_OSCILLATORTYPE_MSI;
+  RCC_OscInitStruct.HSIState = RCC_HSI_ON;
+  RCC_OscInitStruct.HSI48State = RCC_HSI48_ON;
+  RCC_OscInitStruct.HSICalibrationValue = RCC_HSICALIBRATION_DEFAULT;
   RCC_OscInitStruct.MSIState = RCC_MSI_ON;
   RCC_OscInitStruct.MSICalibrationValue = RCC_MSICALIBRATION_DEFAULT;
   RCC_OscInitStruct.MSIClockRange = RCC_MSIRANGE_0;
@@ -259,12 +266,12 @@ int _write(int file, char *ptr, int len)
 
 
 
-void Write_Data_Func(int data){
-  uint8_t serial_Buffer[10];
-  
-  sprintf(serial_Buffer, "data: %d", data);
-  HAL_UART_Transmit(hcom_uart, serial_Buffer, sizeof(serial_Buffer), 250);
-}
+//void Write_Data_Func(int data){
+//  uint8_t serial_Buffer[10];
+//
+//  sprintf(serial_Buffer, "data: %d", data);
+//  HAL_UART_Transmit(hcom_uart, serial_Buffer, sizeof(serial_Buffer), 250);
+//}
 
 /* USER CODE END 4 */
 

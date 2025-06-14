@@ -19,6 +19,9 @@ Core/Src/main.o: ../Core/Src/main.c ../Core/Inc/main.h \
  ../Drivers/STM32U5xx_HAL_Driver/Inc/stm32u5xx_hal_dma.h \
  ../Drivers/STM32U5xx_HAL_Driver/Inc/stm32u5xx_hal_dma_ex.h \
  ../Drivers/STM32U5xx_HAL_Driver/Inc/stm32u5xx_hal_cortex.h \
+ ../Drivers/STM32U5xx_HAL_Driver/Inc/stm32u5xx_hal_adc.h \
+ ../Drivers/STM32U5xx_HAL_Driver/Inc/stm32u5xx_ll_adc.h \
+ ../Drivers/STM32U5xx_HAL_Driver/Inc/stm32u5xx_hal_adc_ex.h \
  ../Drivers/STM32U5xx_HAL_Driver/Inc/stm32u5xx_hal_flash.h \
  ../Drivers/STM32U5xx_HAL_Driver/Inc/stm32u5xx_hal_flash_ex.h \
  ../Drivers/STM32U5xx_HAL_Driver/Inc/stm32u5xx_hal_pwr.h \
@@ -29,13 +32,16 @@ Core/Src/main.o: ../Core/Src/main.c ../Core/Inc/main.h \
  ../Drivers/STM32U5xx_HAL_Driver/Inc/stm32u5xx_hal_tim_ex.h \
  ../Drivers/STM32U5xx_HAL_Driver/Inc/stm32u5xx_hal_uart.h \
  ../Drivers/STM32U5xx_HAL_Driver/Inc/stm32u5xx_hal_uart_ex.h \
+ ../Drivers/STM32U5xx_HAL_Driver/Inc/stm32u5xx_hal_hcd.h \
+ ../Drivers/STM32U5xx_HAL_Driver/Inc/stm32u5xx_ll_usb.h \
  ../Drivers/STM32U5xx_HAL_Driver/Inc/stm32u5xx_hal_exti.h \
  ../Drivers/STM32U5xx_HAL_Driver/Inc/stm32u5xx_hal_ramcfg.h \
  ../Drivers/BSP/STM32U5xx_Nucleo/stm32u5xx_nucleo.h \
  ../Core/Inc/stm32u5xx_nucleo_conf.h \
  ../Drivers/BSP/STM32U5xx_Nucleo/stm32u5xx_nucleo_errno.h \
- ../Core/Inc/gpdma.h ../Core/Inc/main.h ../Core/Inc/icache.h \
- ../Core/Inc/memorymap.h ../Core/Inc/sai.h ../Core/Inc/gpio.h
+ ../Core/Inc/adc.h ../Core/Inc/main.h ../Core/Inc/gpdma.h \
+ ../Core/Inc/icache.h ../Core/Inc/memorymap.h ../Core/Inc/sai.h \
+ ../Core/Inc/usart.h ../Core/Inc/usb_otg.h ../Core/Inc/gpio.h
 ../Core/Inc/main.h:
 ../Drivers/STM32U5xx_HAL_Driver/Inc/stm32u5xx_hal.h:
 ../Core/Inc/stm32u5xx_hal_conf.h:
@@ -57,6 +63,9 @@ Core/Src/main.o: ../Core/Src/main.c ../Core/Inc/main.h \
 ../Drivers/STM32U5xx_HAL_Driver/Inc/stm32u5xx_hal_dma.h:
 ../Drivers/STM32U5xx_HAL_Driver/Inc/stm32u5xx_hal_dma_ex.h:
 ../Drivers/STM32U5xx_HAL_Driver/Inc/stm32u5xx_hal_cortex.h:
+../Drivers/STM32U5xx_HAL_Driver/Inc/stm32u5xx_hal_adc.h:
+../Drivers/STM32U5xx_HAL_Driver/Inc/stm32u5xx_ll_adc.h:
+../Drivers/STM32U5xx_HAL_Driver/Inc/stm32u5xx_hal_adc_ex.h:
 ../Drivers/STM32U5xx_HAL_Driver/Inc/stm32u5xx_hal_flash.h:
 ../Drivers/STM32U5xx_HAL_Driver/Inc/stm32u5xx_hal_flash_ex.h:
 ../Drivers/STM32U5xx_HAL_Driver/Inc/stm32u5xx_hal_pwr.h:
@@ -67,14 +76,19 @@ Core/Src/main.o: ../Core/Src/main.c ../Core/Inc/main.h \
 ../Drivers/STM32U5xx_HAL_Driver/Inc/stm32u5xx_hal_tim_ex.h:
 ../Drivers/STM32U5xx_HAL_Driver/Inc/stm32u5xx_hal_uart.h:
 ../Drivers/STM32U5xx_HAL_Driver/Inc/stm32u5xx_hal_uart_ex.h:
+../Drivers/STM32U5xx_HAL_Driver/Inc/stm32u5xx_hal_hcd.h:
+../Drivers/STM32U5xx_HAL_Driver/Inc/stm32u5xx_ll_usb.h:
 ../Drivers/STM32U5xx_HAL_Driver/Inc/stm32u5xx_hal_exti.h:
 ../Drivers/STM32U5xx_HAL_Driver/Inc/stm32u5xx_hal_ramcfg.h:
 ../Drivers/BSP/STM32U5xx_Nucleo/stm32u5xx_nucleo.h:
 ../Core/Inc/stm32u5xx_nucleo_conf.h:
 ../Drivers/BSP/STM32U5xx_Nucleo/stm32u5xx_nucleo_errno.h:
-../Core/Inc/gpdma.h:
+../Core/Inc/adc.h:
 ../Core/Inc/main.h:
+../Core/Inc/gpdma.h:
 ../Core/Inc/icache.h:
 ../Core/Inc/memorymap.h:
 ../Core/Inc/sai.h:
+../Core/Inc/usart.h:
+../Core/Inc/usb_otg.h:
 ../Core/Inc/gpio.h:
