@@ -40,80 +40,65 @@
 /* Private typedef -----------------------------------------------------------*/
 /* USER CODE BEGIN PTD */
 
-#define VCP_PACKET_HEADER 0xABCD
-#define MIC_DATA_DOWNSAMPLE_FACTOR 8 // Send 1 out of every 8 samples
-#define VCP_MIC_SAMPLES (FFT_SIZE / MIC_DATA_DOWNSAMPLE_FACTOR)
-
 // --- Core Algorithm Defines ---
 #define SAMPLE_RATE         48000
 #define FFT_SIZE            1024
+
+// Structure for UART data packets for a linear array with averaging
+#define UART_PACKET_HEADER 0xABCD
 #define NUM_MICS            4
 #define NUM_PAIRS           3
+#define MIC_DATA_DOWNSAMPLE_FACTOR 8
+#define UART_MIC_SAMPLES (FFT_SIZE / MIC_DATA_DOWNSAMPLE_FACTOR)
+
+#define MIC_1 0
+#define MIC_2 1
+#define MIC_3 0
+#define MIC_4 1
 
 typedef struct {
     uint16_t header;
     uint16_t angle_q10; // Averaged angle in degrees (0-180), scaled by 2^10
-    int16_t lags[3];    // Lags for Mic1-2, Mic2-3, Mic3-4
+    uint32_t timestamp; // Milliseconds since startup (from HAL_GetTick())
+    int16_t lags[NUM_PAIRS];    // Lags for Mic1-2, Mic2-3, Mic3-4
     int16_t reserved;   // Padding for alignment
-    int16_t mic_data[NUM_MICS][VCP_MIC_SAMPLES];
-} VCP_DataPacket;
-
-
-// Structure for UART data packets
-#define UART_PACKET_HEADER 0xABCD
-#define NUM_MICS_DEBUG 2
-#define UART_MIC_SAMPLES (FFT_SIZE / MIC_DATA_DOWNSAMPLE_FACTOR)
-
-typedef struct {
-    uint16_t header;
-    uint16_t angle_q10; // Angle in degrees (0-180), scaled by 2^10
-    uint32_t timestamp;
-    int16_t lag;        // The single lag value between the two mics
-    int16_t reserved;   // Padding for alignment
-    int16_t mic_data[NUM_MICS_DEBUG][UART_MIC_SAMPLES];
+    int16_t mic_data[NUM_MICS][UART_MIC_SAMPLES];
 } UART_DataPacket;
 
 
-#define BUFFER_SIZE 1024
-#define AUDIO_BUFFER_SIZE 4
-
 // DMA buffers receive interleaved data (L/R) for each block
-#define SAI_RX_BUFFER_SIZE  (FFT_SIZE * 2) // *2 for stereo (L/R)
+#define SAI_RX_BUFFER_SIZE  (FFT_SIZE * 2)
 
 // --- Physical Constants ---
 #define SPEED_OF_SOUND      343.0f
 // Distance between ADJACENT microphones in the linear array.
-#define MIC_DISTANCE 0.1f // e.g., 10 cm
+#define MIC_ADJACENT_DISTANCE 0.035 // e.g., 10 cm, 3.5 cm
 
 #ifndef M_PI
 #define M_PI 3.14159265358979323846f
 #endif
+
 
 // Double buffers for circular DMA for each SAI block
 int32_t sai_a_dma_buffer[SAI_RX_BUFFER_SIZE * 2];
 int32_t sai_b_dma_buffer[SAI_RX_BUFFER_SIZE * 2];
 
 // Buffers for de-interleaved, single-channel floating point audio data
-float32_t mic_buffers[NUM_MICS_DEBUG][FFT_SIZE];
+float32_t mic_buffers[NUM_MICS][FFT_SIZE];
 
 // Buffers for FFT and correlation processing
 float32_t fft_buffer1[FFT_SIZE * 2];
 float32_t fft_buffer2[FFT_SIZE * 2];
 float32_t correlation_output[FFT_SIZE * 2];
 
-
 // CMSIS-DSP RFFT instance
 arm_rfft_fast_instance_f32 fft_instance;
 
 // --- Synchronization and Data Pointers ---
-// Use bits to flag completion: bit 0 for HalfCplt, bit 1 for Cplt
-// bits 4,5 for BlockA/B. e.g., 0x11 means HalfCplt for BlockA is ready.
-volatile uint8_t data_ready_flag= 0;
+volatile uint8_t data_ready_flags = 0;
 volatile int32_t* processing_ptr_a = NULL;
 volatile int32_t* processing_ptr_b = NULL;
 
-// VCP transmit buffer
-VCP_DataPacket vcp_packet;
 // UART transmit buffer
 UART_DataPacket uart_packet;
 
@@ -122,22 +107,6 @@ UART_DataPacket uart_packet;
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-
-
-
-
-
-
-// void HAL_SAI_RxCpltCallback(SAI_HandleTypeDef *hsai){
-
-//   timestamp = HAL_GetTick();
-//   l_sample = (int) (audio_buffer[0] << 16) | (audio_buffer[1]);
-//   r_sample = (int) (audio_buffer[2] << 16) | (audio_buffer[3]);
-//   sprintf(serial_Buffer, "left=%d,right=%d,%lu\n", l_sample, r_sample,timestamp);
-//   HAL_UART_Transmit(&huart1, serial_Buffer, strlen(serial_Buffer), 250);
-// }
-
-
 
 
 /* USER CODE END PD */
@@ -157,21 +126,19 @@ UART_DataPacket uart_packet;
 
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
+void PeriphCommonClock_Config(void);
 static void SystemPower_Config(void);
 /* USER CODE BEGIN PFP */
+
 void process_audio_data(void);
 int16_t calculate_tdoa_lag(float32_t* mic1_data, float32_t* mic2_data);
 float32_t calculate_angle_from_lag(int16_t lag, float32_t distance);
-void transmit_vcp_data(float32_t angle, int16_t* lags);
-
-float32_t calculate_direction(int16_t lag);
-void transmit_uart_data(float32_t angle, int16_t lag);
+void transmit_uart_data(float32_t angle, int16_t* lags);
 
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-uint8_t data[8];
 /* USER CODE END 0 */
 
 /**
@@ -200,6 +167,9 @@ int main(void)
   /* Configure the system clock */
   SystemClock_Config();
 
+  /* Configure the peripherals common clocks */
+  PeriphCommonClock_Config();
+
   /* USER CODE BEGIN SysInit */
 
   /* USER CODE END SysInit */
@@ -225,9 +195,9 @@ int main(void)
   }
 
 
-//  if (HAL_SAI_Receive_DMA(&hsai_BlockB1, (uint8_t*)sai_b_dma_buffer, SAI_RX_BUFFER_SIZE * 2) != HAL_OK) {
-//      HAL_GPIO_WritePin(led_green_GPIO_Port, led_green_Pin, GPIO_PIN_SET);
-//  }
+   if (HAL_SAI_Receive_DMA(&hsai_BlockB1, (uint8_t*)sai_b_dma_buffer, SAI_RX_BUFFER_SIZE * 2) != HAL_OK) {
+       HAL_GPIO_WritePin(led_green_GPIO_Port, led_green_Pin, GPIO_PIN_SET);
+   }
 
   /* USER CODE END 2 */
 
@@ -243,20 +213,21 @@ int main(void)
   /* USER CODE BEGIN WHILE */
 
   // Set Mics SAI1 A Left and Right
-  HAL_GPIO_WritePin(m1_lr_sel_GPIO_Port, m1_lr_sel_Pin, GPIO_PIN_RESET);
-  HAL_GPIO_WritePin(m2_lr_sel_GPIO_Port, m2_lr_sel_Pin, GPIO_PIN_SET);
-
-
+  // TODO: add m3 and m4
+  HAL_GPIO_WritePin(m1_lr_sel_GPIO_Port, m1_lr_sel_Pin, MIC_1);
+  HAL_GPIO_WritePin(m2_lr_sel_GPIO_Port, m2_lr_sel_Pin, MIC_2);
+  HAL_GPIO_WritePin(m3_lr_sel_GPIO_Port, m3_lr_sel_Pin, MIC_3);
+  HAL_GPIO_WritePin(m4_lr_sel_GPIO_Port, m4_lr_sel_Pin, MIC_4);
   
   while (1)
   {
 
-    if (data_ready_flag) {
+    if (data_ready_flags) {
         process_audio_data();
+        HAL_GPIO_TogglePin(led_green_GPIO_Port, led_green_Pin); // Indicate processing done
         // Reset flag after processing
-        data_ready_flag = 0;
+        data_ready_flags = 0;
     }
-	   HAL_Delay(500);
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
@@ -323,6 +294,33 @@ void SystemClock_Config(void)
 }
 
 /**
+  * @brief Peripherals Common Clock Configuration
+  * @retval None
+  */
+void PeriphCommonClock_Config(void)
+{
+  RCC_PeriphCLKInitTypeDef PeriphClkInit = {0};
+
+  /** Initializes the common periph clock
+  */
+  PeriphClkInit.PeriphClockSelection = RCC_PERIPHCLK_SAI1;
+  PeriphClkInit.Sai1ClockSelection = RCC_SAI1CLKSOURCE_PLL2;
+  PeriphClkInit.PLL2.PLL2Source = RCC_PLLSOURCE_MSI;
+  PeriphClkInit.PLL2.PLL2M = 3;
+  PeriphClkInit.PLL2.PLL2N = 15;
+  PeriphClkInit.PLL2.PLL2P = 2;
+  PeriphClkInit.PLL2.PLL2Q = 2;
+  PeriphClkInit.PLL2.PLL2R = 2;
+  PeriphClkInit.PLL2.PLL2RGE = RCC_PLLVCIRANGE_1;
+  PeriphClkInit.PLL2.PLL2FRACN = 2048;
+  PeriphClkInit.PLL2.PLL2ClockOut = RCC_PLL2_DIVP;
+  if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInit) != HAL_OK)
+  {
+    Error_Handler();
+  }
+}
+
+/**
   * @brief Power Configuration
   * @retval None
   */
@@ -348,138 +346,77 @@ static void SystemPower_Config(void)
 /* USER CODE BEGIN 4 */
 
 /**
-  * @brief  Processes a block of audio data to calculate sound direction.
-  * @retval None
-  */
-void process_audio_data(void)
-{
-//    // --- Step 0: Cache Maintenance ---
-//    SCB_InvalidateDCache_by_Addr((uint32_t*)processing_ptr_a, SAI_RX_BUFFER_SIZE * sizeof(int32_t));
-//    SCB_InvalidateDCache_by_Addr((uint32_t*)processing_ptr_b, SAI_RX_BUFFER_SIZE * sizeof(int32_t));
+    * @brief  Processes a block of audio data to calculate sound direction.
+    * @retval None
+    */
+  void process_audio_data(void)
+  {
+      // --- Step 0: Cache Maintenance ---
+      // SCB_InvalidateDCache_by_Addr((uint32_t*)processing_ptr_a, SAI_RX_BUFFER_SIZE * sizeof(int32_t));
+      // SCB_InvalidateDCache_by_Addr((uint32_t*)processing_ptr_b, SAI_RX_BUFFER_SIZE * sizeof(int32_t));
 
 
-    // // --- Step 1: De-interleave the raw DMA buffers into separate mic buffers ---
-    // for (int i = 0; i < FFT_SIZE; i++) {
-    //     mic_buffers[0][i] = (float32_t)(processing_ptr_a[i * 2] >> 8);     // Mic 1
-    //     mic_buffers[1][i] = (float32_t)(processing_ptr_a[i * 2 + 1] >> 8); // Mic 2
-    //     mic_buffers[2][i] = (float32_t)(processing_ptr_b[i * 2] >> 8);     // Mic 3
-    //     mic_buffers[3][i] = (float32_t)(processing_ptr_b[i * 2 + 1] >> 8); // Mic 4
-    // }
+      // --- Step 1: De-interleave the raw DMA buffers into separate mic buffers ---
+      for (int i = 0; i < FFT_SIZE; i++) {
+          mic_buffers[0][i] = (float32_t)(processing_ptr_a[i * 2] >> 8);     // Mic 1
+          mic_buffers[1][i] = (float32_t)(processing_ptr_a[i * 2 + 1] >> 8); // Mic 2
+          mic_buffers[2][i] = (float32_t)(processing_ptr_b[i * 2] >> 8);     // Mic 3
+          mic_buffers[3][i] = (float32_t)(processing_ptr_b[i * 2 + 1] >> 8); // Mic 4
+      }
 
-    // // --- Step 2: Calculate TDOA lag for each adjacent microphone pair ---
-    // int16_t lags[NUM_PAIRS];
-    // lags[0] = calculate_tdoa_lag(mic_buffers[0], mic_buffers[1]); // Pair 1: Mic1-Mic2
-    // lags[1] = calculate_tdoa_lag(mic_buffers[1], mic_buffers[2]); // Pair 2: Mic2-Mic3
-    // lags[2] = calculate_tdoa_lag(mic_buffers[2], mic_buffers[3]); // Pair 3: Mic3-Mic4
+      // --- Step 2: Calculate TDOA lag for each adjacent microphone pair ---
+      int16_t lags[NUM_PAIRS];
+      lags[0] = calculate_tdoa_lag(mic_buffers[0], mic_buffers[1]); // Pair 1: Mic1-Mic2
+      lags[1] = calculate_tdoa_lag(mic_buffers[1], mic_buffers[2]); // Pair 2: Mic2-Mic3
+      lags[2] = calculate_tdoa_lag(mic_buffers[2], mic_buffers[3]); // Pair 3: Mic3-Mic4
 
-    // // --- Step 3: Convert each lag into an angle and average the results ---
-    // float32_t angles[NUM_PAIRS];
-    // float32_t angle_sum = 0.0f;
+      // --- Step 3: Convert each lag into an angle and average the results ---
+      float32_t angles[NUM_PAIRS];
+      float32_t angle_sum = 0.0f;
+      uint8_t valid_pairs = 0;
 
-    // for (int i = 0; i < NUM_PAIRS; i++) {
-    //     angles[i] = calculate_angle_from_lag(lags[i], MIC_ADJACENT_DISTANCE);
-    //     angle_sum += angles[i];
-    // }
-    // float32_t average_angle = angle_sum / NUM_PAIRS;
-
-
-        // --- Step 1: De-interleave the raw DMA buffer into separate mic buffers ---
-    for (int i = 0; i < FFT_SIZE; i++) {
-        // Data is 24-bit in a 32-bit word, left-aligned. Right-shift to normalize.
-        mic_buffers[0][i] = (float32_t)(processing_ptr_a[i * 2] >> 8);     // Mic 1
-        mic_buffers[1][i] = (float32_t)(processing_ptr_a[i * 2 + 1] >> 8); // Mic 2
-    }
-
-    // --- Step 2: Calculate TDOA lag for the microphone pair ---
-    int16_t lag = calculate_tdoa_lag(mic_buffers[0], mic_buffers[1]);
-
-    // --- Step 3: Convert lag into a direction angle (0-180 degrees) ---
-    float32_t angle_deg = calculate_direction(lag);
-
-
-    // --- Step 4: Transmit results and diagnostic data over UART ---
-    transmit_uart_data(angle_deg, lag);
-
-
-
-    // --- Step 4: Transmit results and diagnostic data over VCP ---
-//    transmit_vcp_data(angle_deg, lag);
-}
-
-/**
-  * @brief  Calculates the direction angle for a linear array.
-  * @param  lag: The lag in samples between the two microphones.
-  * @retval Angle in degrees (0-180).
-  */
-float32_t calculate_direction(int16_t lag)
-{
-    float32_t dt = (float32_t)lag / SAMPLE_RATE;
-
-    // Calculate the argument for acos, clamp to [-1, 1] to avoid domain errors
-    float32_t cos_theta = (dt * SPEED_OF_SOUND) / MIC_DISTANCE;
-    cos_theta = fmaxf(-1.0f, fminf(1.0f, cos_theta));
-    
-    // Calculate final angle in degrees
-    float32_t angle_rad = acosf(cos_theta);
-    float32_t angle_deg = angle_rad * 180.0f / M_PI;
-
-    return angle_deg;
-}
-
-
-/**
- * @brief Fills and transmits a data packet over USB VCP.
- * @param angle The final averaged angle in degrees.
- * @param lags  Pointer to an array of the 3 individual lag values.
- */
-void transmit_vcp_data(float32_t angle, int16_t* lags) {
-    vcp_packet.header = VCP_PACKET_HEADER;
-    vcp_packet.angle_q10 = (uint16_t)(angle * 1024.0f);
-    
-    // Copy the individual lags into the packet
-    memcpy(vcp_packet.lags, lags, sizeof(vcp_packet.lags));
-    vcp_packet.reserved = 0;
-
-    // Downsample raw mic data for transmission
-    for(int i = 0; i < NUM_MICS; i++) {
-        for(int j = 0; j < VCP_MIC_SAMPLES; j++) {
-            // Convert float back to int16 for smaller packet size
-            vcp_packet.mic_data[i][j] = (int16_t)mic_buffers[i][j * MIC_DATA_DOWNSAMPLE_FACTOR];
+      for (int i = 0; i < NUM_PAIRS; i++) {
+          angles[i] = calculate_angle_from_lag(lags[i], MIC_ADJACENT_DISTANCE);
+          // A simple check to exclude potentially invalid angles from averaging
+          if (angles[i] > 0.0f && angles[i] < 180.0f) {
+              angle_sum += angles[i];
+              valid_pairs++;
         }
     }
+    
+    float32_t average_angle = 0.0f;
+    if (valid_pairs > 0) {
+        average_angle = angle_sum / valid_pairs;
+    }
 
-    // Send the packet over USB
-    //CDC_Transmit_FS((uint8_t*)&vcp_packet, sizeof(VCP_DataPacket));
-    HAL_UART_Transmit(&huart1, (uint8_t*)&vcp_packet, sizeof(VCP_DataPacket), HAL_MAX_DELAY);
-    // Optionally, toggle an LED to indicate data transmission
-    HAL_GPIO_TogglePin(led_green_GPIO_Port, led_green_Pin);
+    // --- Step 4: Transmit results and diagnostic data over VCP ---
+    transmit_uart_data(average_angle, lags);
 }
+
 
 /**
  * @brief Fills and transmits a data packet over UART.
- * @param angle The calculated angle in degrees.
- * @param lag The TDOA lag between the two mics.
+ * @param angle The final averaged angle in degrees.
+ * @param lags  Pointer to an array of the 3 individual lag values.
  */
-void transmit_uart_data(float32_t angle, int16_t lag) {
+void transmit_uart_data(float32_t angle, int16_t* lags) {
     uart_packet.header = UART_PACKET_HEADER;
     uart_packet.angle_q10 = (uint16_t)(angle * 1024.0f);
     uart_packet.timestamp = HAL_GetTick();
-    uart_packet.lag = lag;
+    
+    // Copy the individual lags into the packet
+    memcpy(uart_packet.lags, lags, sizeof(uart_packet.lags));
     uart_packet.reserved = 0;
 
     // Downsample raw mic data for transmission
-    for(int i = 0; i < NUM_MICS_DEBUG; i++) {
+    for(int i = 0; i < NUM_MICS; i++) {
         for(int j = 0; j < UART_MIC_SAMPLES; j++) {
             uart_packet.mic_data[i][j] = (int16_t)mic_buffers[i][j * MIC_DATA_DOWNSAMPLE_FACTOR];
         }
     }
 
     // Send the packet over UART
-    // Note: Using HAL_UART_Transmit in blocking mode for simplicity.
-    // For higher performance, HAL_UART_Transmit_DMA could be used.
     HAL_UART_Transmit(&huart1, (uint8_t*)&uart_packet, sizeof(UART_DataPacket), 100);
-    // Optionally, toggle an LED to indicate data transmission
-    HAL_GPIO_TogglePin(led_blue_GPIO_Port, led_blue_Pin);
 }
 
 /**
@@ -511,15 +448,10 @@ float32_t calculate_angle_from_lag(int16_t lag, float32_t distance)
   */
 int16_t calculate_tdoa_lag(float32_t* mic1_data, float32_t* mic2_data)
 {
-    // Copy data to FFT buffers
     memcpy(fft_buffer1, mic1_data, FFT_SIZE * sizeof(float32_t));
     memcpy(fft_buffer2, mic2_data, FFT_SIZE * sizeof(float32_t));
-
-    // Perform forward FFT on both signals
     arm_rfft_fast_f32(&fft_instance, fft_buffer1, fft_buffer1, 0);
     arm_rfft_fast_f32(&fft_instance, fft_buffer2, fft_buffer2, 0);
-
-    // GCC-PHAT Calculation
     for (int i = 0; i < FFT_SIZE * 2; i += 2) {
         float32_t X_re = fft_buffer1[i], X_im = fft_buffer1[i+1];
         float32_t Y_re = fft_buffer2[i], Y_im = fft_buffer2[i+1];
@@ -535,15 +467,10 @@ int16_t calculate_tdoa_lag(float32_t* mic1_data, float32_t* mic2_data)
             correlation_output[i+1] = 0.0f;
         }
     }
-
-    // Inverse FFT
     arm_rfft_fast_f32(&fft_instance, correlation_output, correlation_output, 1);
-
-    // Find the peak of the correlation
     float32_t max_val;
     uint32_t max_idx;
     arm_max_f32(correlation_output, FFT_SIZE, &max_val, &max_idx);
-    
     int16_t lag_val = max_idx;
     if (lag_val >= FFT_SIZE / 2) {
         lag_val -= FFT_SIZE;
@@ -553,43 +480,41 @@ int16_t calculate_tdoa_lag(float32_t* mic1_data, float32_t* mic2_data)
 
 // --- DMA Transfer Complete Callbacks ---
 
-// Synchronization state for the two DMA channels
 volatile uint8_t dma_sync_flags = 0;
 
 void trigger_processing(uint8_t half) {
-    // Both DMAs for a given half (0 or 1) must be complete
     if (dma_sync_flags == 0x03) {
-        if(half == 0) { // First half
+        if(half == 0) {
             processing_ptr_a = &sai_a_dma_buffer[0];
             processing_ptr_b = &sai_b_dma_buffer[0];
-        } else { // Second half
+        } else {
             processing_ptr_a = &sai_a_dma_buffer[SAI_RX_BUFFER_SIZE];
             processing_ptr_b = &sai_b_dma_buffer[SAI_RX_BUFFER_SIZE];
         }
-        data_ready_flag = 1; // Signal main loop to process
-        dma_sync_flags = 0; // Reset for next round
+        data_ready_flags = 1;
+        dma_sync_flags = 0;
     }
 }
 
-// --- Simplified DMA Transfer Complete Callbacks ---
-
 void HAL_SAI_RxHalfCpltCallback(SAI_HandleTypeDef *hsai)
 {
-  // Point to the first half of the DMA buffer
-  processing_ptr_a = &sai_a_dma_buffer[0];
-  // Set flag to process this data in the main loop
-  data_ready_flag = 1;
+  if (hsai->Instance == SAI1_Block_A) {
+      dma_sync_flags |= (1 << 0);
+  } else if (hsai->Instance == SAI1_Block_B) {
+      dma_sync_flags |= (1 << 1);
+  }
+  trigger_processing(0);
 }
 
 void HAL_SAI_RxCpltCallback(SAI_HandleTypeDef *hsai)
 {
-  // Point to the second half of the DMA buffer
-  processing_ptr_a = &sai_a_dma_buffer[SAI_RX_BUFFER_SIZE];
-  // Set flag to process this data in the main loop
-  data_ready_flag = 1;
+  if (hsai->Instance == SAI1_Block_A) {
+      dma_sync_flags |= (1 << 0);
+  } else if (hsai->Instance == SAI1_Block_B) {
+      dma_sync_flags |= (1 << 1);
+  }
+  trigger_processing(1);
 }
-
-
 
 
 

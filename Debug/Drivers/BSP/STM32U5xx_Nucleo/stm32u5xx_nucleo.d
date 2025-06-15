@@ -38,7 +38,6 @@ Drivers/BSP/STM32U5xx_Nucleo/stm32u5xx_nucleo.o: \
  ../Drivers/STM32U5xx_HAL_Driver/Inc/stm32u5xx_hal_hcd.h \
  ../Drivers/STM32U5xx_HAL_Driver/Inc/stm32u5xx_ll_usb.h \
  ../Drivers/STM32U5xx_HAL_Driver/Inc/stm32u5xx_hal_exti.h \
- ../Drivers/STM32U5xx_HAL_Driver/Inc/stm32u5xx_hal_ramcfg.h \
  ../Drivers/BSP/STM32U5xx_Nucleo/stm32u5xx_nucleo_errno.h
 ../Drivers/BSP/STM32U5xx_Nucleo/stm32u5xx_nucleo.h:
 ../Core/Inc/stm32u5xx_nucleo_conf.h:
@@ -78,5 +77,4 @@ Drivers/BSP/STM32U5xx_Nucleo/stm32u5xx_nucleo.o: \
 ../Drivers/STM32U5xx_HAL_Driver/Inc/stm32u5xx_hal_hcd.h:
 ../Drivers/STM32U5xx_HAL_Driver/Inc/stm32u5xx_ll_usb.h:
 ../Drivers/STM32U5xx_HAL_Driver/Inc/stm32u5xx_hal_exti.h:
-../Drivers/STM32U5xx_HAL_Driver/Inc/stm32u5xx_hal_ramcfg.h:
 ../Drivers/BSP/STM32U5xx_Nucleo/stm32u5xx_nucleo_errno.h:

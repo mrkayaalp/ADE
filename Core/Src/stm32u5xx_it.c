@@ -62,6 +62,7 @@ extern DMA_NodeTypeDef Node_GPDMA1_Channel13;
 extern DMA_QListTypeDef List_GPDMA1_Channel13;
 extern DMA_HandleTypeDef handle_GPDMA1_Channel13;
 extern SAI_HandleTypeDef hsai_BlockA1;
+extern SAI_HandleTypeDef hsai_BlockB1;
 extern TIM_HandleTypeDef htim17;
 
 /* USER CODE BEGIN EV */
@@ -271,6 +272,7 @@ void SAI1_IRQHandler(void)
 
   /* USER CODE END SAI1_IRQn 0 */
   HAL_SAI_IRQHandler(&hsai_BlockA1);
+  HAL_SAI_IRQHandler(&hsai_BlockB1);
   /* USER CODE BEGIN SAI1_IRQn 1 */
 
   /* USER CODE END SAI1_IRQn 1 */

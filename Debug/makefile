@@ -9,9 +9,6 @@ RM := rm -rf
 
 # All of the sources participating in the build are defined here
 -include sources.mk
--include Utilities/lpbam/STM32U5/subdir.mk
--include Utilities/lpbam/subdir.mk
--include LPBAM/LpbamAp1/subdir.mk
 -include Drivers/STM32U5xx_HAL_Driver/Src/subdir.mk
 -include Drivers/BSP/STM32U5xx_Nucleo/subdir.mk
 -include Core/Startup/subdir.mk

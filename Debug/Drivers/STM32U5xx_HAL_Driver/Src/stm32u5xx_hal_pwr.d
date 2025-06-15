@@ -35,8 +35,7 @@ Drivers/STM32U5xx_HAL_Driver/Src/stm32u5xx_hal_pwr.o: \
  ../Drivers/STM32U5xx_HAL_Driver/Inc/stm32u5xx_hal_uart_ex.h \
  ../Drivers/STM32U5xx_HAL_Driver/Inc/stm32u5xx_hal_hcd.h \
  ../Drivers/STM32U5xx_HAL_Driver/Inc/stm32u5xx_ll_usb.h \
- ../Drivers/STM32U5xx_HAL_Driver/Inc/stm32u5xx_hal_exti.h \
- ../Drivers/STM32U5xx_HAL_Driver/Inc/stm32u5xx_hal_ramcfg.h
+ ../Drivers/STM32U5xx_HAL_Driver/Inc/stm32u5xx_hal_exti.h
 ../Drivers/STM32U5xx_HAL_Driver/Inc/stm32u5xx_hal.h:
 ../Core/Inc/stm32u5xx_hal_conf.h:
 ../Drivers/STM32U5xx_HAL_Driver/Inc/stm32u5xx_hal_rcc.h:
@@ -73,4 +72,3 @@ Drivers/STM32U5xx_HAL_Driver/Src/stm32u5xx_hal_pwr.o: \
 ../Drivers/STM32U5xx_HAL_Driver/Inc/stm32u5xx_hal_hcd.h:
 ../Drivers/STM32U5xx_HAL_Driver/Inc/stm32u5xx_ll_usb.h:
 ../Drivers/STM32U5xx_HAL_Driver/Inc/stm32u5xx_hal_exti.h:
-../Drivers/STM32U5xx_HAL_Driver/Inc/stm32u5xx_hal_ramcfg.h:
