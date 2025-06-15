@@ -56,9 +56,11 @@ void DebugMon_Handler(void);
 void PendSV_Handler(void);
 void SysTick_Handler(void);
 void EXTI13_IRQHandler(void);
+void USART1_IRQHandler(void);
 void TIM17_IRQHandler(void);
 void GPDMA1_Channel13_IRQHandler(void);
 void GPDMA1_Channel14_IRQHandler(void);
+void GPDMA1_Channel15_IRQHandler(void);
 void SAI1_IRQHandler(void);
 /* USER CODE BEGIN EFP */
 
