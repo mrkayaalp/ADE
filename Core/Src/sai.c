@@ -29,6 +29,9 @@ SAI_HandleTypeDef hsai_BlockA1;
 DMA_NodeTypeDef Node_GPDMA1_Channel14;
 DMA_QListTypeDef List_GPDMA1_Channel14;
 DMA_HandleTypeDef handle_GPDMA1_Channel14;
+DMA_NodeTypeDef Node_GPDMA1_Channel13;
+DMA_QListTypeDef List_GPDMA1_Channel13;
+DMA_HandleTypeDef handle_GPDMA1_Channel13;
 
 /* SAI1 init function */
 void MX_SAI1_Init(void)
@@ -81,12 +84,12 @@ void HAL_SAI_MspInit(SAI_HandleTypeDef* saiHandle)
     PeriphClkInit.Sai1ClockSelection = RCC_SAI1CLKSOURCE_PLL2;
     PeriphClkInit.PLL2.PLL2Source = RCC_PLLSOURCE_MSI;
     PeriphClkInit.PLL2.PLL2M = 3;
-    PeriphClkInit.PLL2.PLL2N = 8;
-    PeriphClkInit.PLL2.PLL2P = 1;
+    PeriphClkInit.PLL2.PLL2N = 15;
+    PeriphClkInit.PLL2.PLL2P = 2;
     PeriphClkInit.PLL2.PLL2Q = 2;
     PeriphClkInit.PLL2.PLL2R = 2;
     PeriphClkInit.PLL2.PLL2RGE = RCC_PLLVCIRANGE_1;
-    PeriphClkInit.PLL2.PLL2FRACN = 0;
+    PeriphClkInit.PLL2.PLL2FRACN = 2048;
     PeriphClkInit.PLL2.PLL2ClockOut = RCC_PLL2_DIVP;
     if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInit) != HAL_OK)
     {
@@ -123,8 +126,8 @@ void HAL_SAI_MspInit(SAI_HandleTypeDef* saiHandle)
     NodeConfig.Init.Direction = DMA_PERIPH_TO_MEMORY;
     NodeConfig.Init.SrcInc = DMA_SINC_FIXED;
     NodeConfig.Init.DestInc = DMA_DINC_INCREMENTED;
-    NodeConfig.Init.SrcDataWidth = DMA_SRC_DATAWIDTH_HALFWORD;
-    NodeConfig.Init.DestDataWidth = DMA_DEST_DATAWIDTH_HALFWORD;
+    NodeConfig.Init.SrcDataWidth = DMA_SRC_DATAWIDTH_WORD;
+    NodeConfig.Init.DestDataWidth = DMA_DEST_DATAWIDTH_WORD;
     NodeConfig.Init.SrcBurstLength = 1;
     NodeConfig.Init.DestBurstLength = 1;
     NodeConfig.Init.TransferAllocatedPort = DMA_SRC_ALLOCATED_PORT0|DMA_DEST_ALLOCATED_PORT0;
@@ -154,7 +157,7 @@ void HAL_SAI_MspInit(SAI_HandleTypeDef* saiHandle)
     }
 
     handle_GPDMA1_Channel14.Instance = GPDMA1_Channel14;
-    handle_GPDMA1_Channel14.InitLinkedList.Priority = DMA_LOW_PRIORITY_LOW_WEIGHT;
+    handle_GPDMA1_Channel14.InitLinkedList.Priority = DMA_HIGH_PRIORITY;
     handle_GPDMA1_Channel14.InitLinkedList.LinkStepMode = DMA_LSM_FULL_EXECUTION;
     handle_GPDMA1_Channel14.InitLinkedList.LinkAllocatedPort = DMA_LINK_ALLOCATED_PORT0;
     handle_GPDMA1_Channel14.InitLinkedList.TransferEventMode = DMA_TCEM_BLOCK_TRANSFER;

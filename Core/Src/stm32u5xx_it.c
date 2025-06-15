@@ -58,6 +58,9 @@
 extern DMA_NodeTypeDef Node_GPDMA1_Channel14;
 extern DMA_QListTypeDef List_GPDMA1_Channel14;
 extern DMA_HandleTypeDef handle_GPDMA1_Channel14;
+extern DMA_NodeTypeDef Node_GPDMA1_Channel13;
+extern DMA_QListTypeDef List_GPDMA1_Channel13;
+extern DMA_HandleTypeDef handle_GPDMA1_Channel13;
 extern SAI_HandleTypeDef hsai_BlockA1;
 extern TIM_HandleTypeDef htim17;
 
@@ -229,6 +232,20 @@ void TIM17_IRQHandler(void)
   /* USER CODE BEGIN TIM17_IRQn 1 */
 
   /* USER CODE END TIM17_IRQn 1 */
+}
+
+/**
+  * @brief This function handles GPDMA1 Channel 13 global interrupt.
+  */
+void GPDMA1_Channel13_IRQHandler(void)
+{
+  /* USER CODE BEGIN GPDMA1_Channel13_IRQn 0 */
+
+  /* USER CODE END GPDMA1_Channel13_IRQn 0 */
+  HAL_DMA_IRQHandler(&handle_GPDMA1_Channel13);
+  /* USER CODE BEGIN GPDMA1_Channel13_IRQn 1 */
+
+  /* USER CODE END GPDMA1_Channel13_IRQn 1 */
 }
 
 /**

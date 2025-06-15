@@ -1,6 +1,6 @@
 ################################################################################
 # Automatically-generated file. Do not edit!
-# Toolchain: GNU Tools for STM32 (12.3.rel1)
+# Toolchain: GNU Tools for STM32 (13.3.rel1)
 ################################################################################
 
 ELF_SRCS := 
@@ -27,7 +27,6 @@ Core/Startup \
 Drivers/BSP/STM32U5xx_Nucleo \
 Drivers/STM32U5xx_HAL_Driver/Src \
 LPBAM/LpbamAp1 \
-Middlewares/ST/usbx/common/core/src \
 Utilities/lpbam/STM32U5 \
 Utilities/lpbam \
 
