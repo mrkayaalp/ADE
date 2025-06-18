@@ -380,7 +380,7 @@ static void SystemPower_Config(void)
 /* USER CODE BEGIN 4 */
 
 /**
-  * @brief  Processes a block of audio data to calculate sound direction.
+  * @brief  Bir ses verisi bloğunu işleyerek ses yönünü hesaplar.
   * @retval None
   */
 void process_audio_data(void)
@@ -389,9 +389,11 @@ void process_audio_data(void)
     float32_t all_correlation_outputs[NUM_PAIRS][FFT_SIZE];
     float32_t dc_offset;
 
+    // Adım 0: Önbellek Yönetimi
 //    SCB_InvalidateDCache_by_Addr((uint32_t*)processing_ptr_a, SAI_RX_BUFFER_SIZE * sizeof(int32_t));
 //    SCB_InvalidateDCache_by_Addr((uint32_t*)processing_ptr_b, SAI_RX_BUFFER_SIZE * sizeof(int32_t));
 
+    // Adım 1: Ham DMA verilerini ayrıştır (De-interleave)
     for (int i = 0; i < FFT_SIZE; i++) {
         mic_buffers[0][i] = (float32_t)(processing_ptr_a[i * 2] >> 8);
         mic_buffers[1][i] = (float32_t)(processing_ptr_a[i * 2 + 1] >> 8);
@@ -399,54 +401,47 @@ void process_audio_data(void)
         mic_buffers[3][i] = (float32_t)(processing_ptr_b[i * 2 + 1] >> 8);
     }
 
-    // --- Step 2: Remove DC offset ---
-    // NOTE: The IIR filter has been temporarily disabled to debug instability.
-    // We will only perform DC offset removal for now.
+    // Adım 2: DC Ofseti Kaldır
     for (int i = 0; i < NUM_MICS; i++) {
-    	// Calculate the DC offset (mean) of the buffer
     	arm_mean_f32(mic_buffers[i], FFT_SIZE, &dc_offset);
-
-    	// Subtract the DC offset from every sample in the buffer
     	arm_offset_f32(mic_buffers[i], -dc_offset, mic_buffers[i], FFT_SIZE);
     }
-    // --- Calculate TDOA lag for adjacent microphone pairs ---
-    int16_t lags[NUM_PAIRS];
-    lags[0] = calculate_tdoa_lag(mic_buffers[0], mic_buffers[1], all_correlation_outputs[0]); // Pair 1-2
-    lags[1] = calculate_tdoa_lag(mic_buffers[1], mic_buffers[2], all_correlation_outputs[1]); // Pair 2-3
-    lags[2] = calculate_tdoa_lag(mic_buffers[2], mic_buffers[3], all_correlation_outputs[2]); // Pair 3-4
 
-    // --- Convert each lag into an angle and average the results ---
+    // Adım 3: Komşu mikrofon çiftleri için TDOA gecikmesini (lag) hesapla
+    // Bu bölüm Python kodundaki TDOA hesaplama döngüsüne karşılık gelir
+    int16_t lags[NUM_PAIRS];
+    lags[0] = calculate_tdoa_lag(mic_buffers[0], mic_buffers[1], all_correlation_outputs[0]); // Çift 1-2
+    lags[1] = calculate_tdoa_lag(mic_buffers[1], mic_buffers[2], all_correlation_outputs[1]); // Çift 2-3
+    lags[2] = calculate_tdoa_lag(mic_buffers[2], mic_buffers[3], all_correlation_outputs[2]); // Çift 3-4
+
+    // Adım 4: Her gecikmeyi bir açıya dönüştür ve sonuçların ortalamasını al
+    // Bu bölüm Python kodundaki "Açıyı Her Mikrofon Çifti İçin Tahmin Etme" kısmına karşılık gelir
     float32_t angles[NUM_PAIRS];
     float32_t angle_sum = 0.0f;
     uint8_t valid_pairs = 0;
 
     for (int i = 0; i < NUM_PAIRS; i++) {
-        // All pairs use the same adjacent distance for this calculation
         angles[i] = calculate_angle_from_lag(lags[i], MIC_ADJACENT_DISTANCE);
-        // A simple check to exclude potentially invalid angles from averaging
         if (angles[i] > 0.0f && angles[i] < 180.0f) {
              angle_sum += angles[i];
              valid_pairs++;
         }
     }
     
-    // Only calculate an average if all 3 pairs produce a valid angle.
-    average_angle = (valid_pairs == NUM_PAIRS) ? (angle_sum / NUM_PAIRS) : average_angle;
+    // Python'daki `np.mean()` gibi, geçerli çiftlerin ortalamasını hesapla
+    average_angle = (valid_pairs > 0) ? (angle_sum / valid_pairs) : average_angle;
     
-    // --- Check if it's time to transmit ---
+    // Adım 5: Veri gönderme zamanı mı diye kontrol et
     tx_cycle_counter++;
     if (tx_cycle_counter >= UART_TX_CYCLE_INTERVAL) {
         transmit_uart_data(average_angle, lags, all_correlation_outputs);
-        tx_cycle_counter = 0; // Reset counter
+        tx_cycle_counter = 0;
     }
 }
 
 
 /**
- * @brief Fills and transmits a data packet over UART using DMA.
- * @param angle The final averaged angle in degrees.
- * @param lags  Pointer to an array of the 3 individual lag values.
- * @param correlation_results 2D array containing the full correlation output for each pair.
+ * @brief  Bir veri paketini UART üzerinden DMA kullanarak doldurur ve gönderir.
  */
 void transmit_uart_data(float32_t angle, int16_t* lags, float32_t correlation_results[NUM_PAIRS][FFT_SIZE]) {
     if (huart1.gState != HAL_UART_STATE_READY) {
@@ -454,23 +449,20 @@ void transmit_uart_data(float32_t angle, int16_t* lags, float32_t correlation_re
     }
 
     uart_tx_packet.header = UART_PACKET_HEADER;
-    uart_tx_packet.angle_q10 = (uint16_t)(angle * 1024.0f);
+    uart_tx_packet.angle_q10 = (uint16_t)(angle * 256.0f);
     uart_tx_packet.timestamp = HAL_GetTick();
     memcpy(uart_tx_packet.lags, lags, sizeof(uart_tx_packet.lags));
     uart_tx_packet.reserved = 0;
 
-    // Copy all three full correlation results into the packet
     memcpy(uart_tx_packet.correlation_pair1, correlation_results[0], FFT_SIZE * sizeof(float32_t));
     memcpy(uart_tx_packet.correlation_pair2, correlation_results[1], FFT_SIZE * sizeof(float32_t));
     memcpy(uart_tx_packet.correlation_pair3, correlation_results[2], FFT_SIZE * sizeof(float32_t));
 
-    // Start the non-blocking DMA transfer
     HAL_UART_Transmit_DMA(&huart1, (uint8_t*)&uart_tx_packet, sizeof(UART_DataPacket));
 }
 
 /**
-  * @brief  Calculates the direction angle from a TDOA lag and pair distance.
-  * @retval Angle in degrees (0-180).
+  * @brief  Bir TDOA gecikmesi ve çift mesafesinden yön açısını hesaplar.
   */
 float32_t calculate_angle_from_lag(int16_t lag, float32_t distance)
 {
@@ -482,10 +474,7 @@ float32_t calculate_angle_from_lag(int16_t lag, float32_t distance)
 }
 
 /**
-  * @brief  Calculates the time delay (lag) using GCC-PHAT and stores the result.
-  * @param  mic1_data, mic2_data: Pointers to input audio buffers.
-  * @param  correlation_result: Pointer to a buffer to store the IFFT output.
-  * @retval The lag in samples.
+  * @brief  GCC-PHAT kullanarak zaman gecikmesini (lag) hesaplar ve sonucu saklar.
   */
 int16_t calculate_tdoa_lag(float32_t* mic1_data, float32_t* mic2_data, float32_t* correlation_result)
 {
