@@ -1,4 +1,5 @@
 "./Core/Src/adc.o"
+"./Core/Src/dcache.o"
 "./Core/Src/gpdma.o"
 "./Core/Src/gpio.o"
 "./Core/Src/icache.o"
@@ -19,6 +20,7 @@
 "./Drivers/STM32U5xx_HAL_Driver/Src/stm32u5xx_hal_adc.o"
 "./Drivers/STM32U5xx_HAL_Driver/Src/stm32u5xx_hal_adc_ex.o"
 "./Drivers/STM32U5xx_HAL_Driver/Src/stm32u5xx_hal_cortex.o"
+"./Drivers/STM32U5xx_HAL_Driver/Src/stm32u5xx_hal_dcache.o"
 "./Drivers/STM32U5xx_HAL_Driver/Src/stm32u5xx_hal_dma.o"
 "./Drivers/STM32U5xx_HAL_Driver/Src/stm32u5xx_hal_dma_ex.o"
 "./Drivers/STM32U5xx_HAL_Driver/Src/stm32u5xx_hal_exti.o"

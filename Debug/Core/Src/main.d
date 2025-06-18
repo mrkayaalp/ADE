@@ -16,6 +16,7 @@ Core/Src/main.o: ../Core/Src/main.c ../Core/Inc/main.h \
  ../Drivers/STM32U5xx_HAL_Driver/Inc/stm32u5xx_hal_gpio.h \
  ../Drivers/STM32U5xx_HAL_Driver/Inc/stm32u5xx_hal_gpio_ex.h \
  ../Drivers/STM32U5xx_HAL_Driver/Inc/stm32u5xx_hal_icache.h \
+ ../Drivers/STM32U5xx_HAL_Driver/Inc/stm32u5xx_hal_dcache.h \
  ../Drivers/STM32U5xx_HAL_Driver/Inc/stm32u5xx_hal_dma.h \
  ../Drivers/STM32U5xx_HAL_Driver/Inc/stm32u5xx_hal_dma_ex.h \
  ../Drivers/STM32U5xx_HAL_Driver/Inc/stm32u5xx_hal_cortex.h \
@@ -38,10 +39,10 @@ Core/Src/main.o: ../Core/Src/main.c ../Core/Inc/main.h \
  ../Drivers/BSP/STM32U5xx_Nucleo/stm32u5xx_nucleo.h \
  ../Core/Inc/stm32u5xx_nucleo_conf.h \
  ../Drivers/BSP/STM32U5xx_Nucleo/stm32u5xx_nucleo_errno.h \
- ../Core/Inc/adc.h ../Core/Inc/main.h ../Core/Inc/gpdma.h \
- ../Core/Inc/icache.h ../Core/Inc/memorymap.h ../Core/Inc/sai.h \
- ../Core/Inc/usart.h ../Core/Inc/usb_otg.h ../Core/Inc/gpio.h \
- ../Middlewares/ST/ARM/DSP/Inc/arm_math.h \
+ ../Core/Inc/adc.h ../Core/Inc/main.h ../Core/Inc/dcache.h \
+ ../Core/Inc/gpdma.h ../Core/Inc/icache.h ../Core/Inc/memorymap.h \
+ ../Core/Inc/sai.h ../Core/Inc/usart.h ../Core/Inc/usb_otg.h \
+ ../Core/Inc/gpio.h ../Middlewares/ST/ARM/DSP/Inc/arm_math.h \
  ../Drivers/CMSIS/Include/cmsis_compiler.h
 ../Core/Inc/main.h:
 ../Drivers/STM32U5xx_HAL_Driver/Inc/stm32u5xx_hal.h:
@@ -61,6 +62,7 @@ Core/Src/main.o: ../Core/Src/main.c ../Core/Inc/main.h \
 ../Drivers/STM32U5xx_HAL_Driver/Inc/stm32u5xx_hal_gpio.h:
 ../Drivers/STM32U5xx_HAL_Driver/Inc/stm32u5xx_hal_gpio_ex.h:
 ../Drivers/STM32U5xx_HAL_Driver/Inc/stm32u5xx_hal_icache.h:
+../Drivers/STM32U5xx_HAL_Driver/Inc/stm32u5xx_hal_dcache.h:
 ../Drivers/STM32U5xx_HAL_Driver/Inc/stm32u5xx_hal_dma.h:
 ../Drivers/STM32U5xx_HAL_Driver/Inc/stm32u5xx_hal_dma_ex.h:
 ../Drivers/STM32U5xx_HAL_Driver/Inc/stm32u5xx_hal_cortex.h:
@@ -85,6 +87,7 @@ Core/Src/main.o: ../Core/Src/main.c ../Core/Inc/main.h \
 ../Drivers/BSP/STM32U5xx_Nucleo/stm32u5xx_nucleo_errno.h:
 ../Core/Inc/adc.h:
 ../Core/Inc/main.h:
+../Core/Inc/dcache.h:
 ../Core/Inc/gpdma.h:
 ../Core/Inc/icache.h:
 ../Core/Inc/memorymap.h:

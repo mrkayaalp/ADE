@@ -19,6 +19,7 @@
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
 #include "adc.h"
+#include "dcache.h"
 #include "gpdma.h"
 #include "icache.h"
 #include "memorymap.h"
@@ -33,6 +34,7 @@
 /* Must include the CMSIS-DSP library header */
 #define ARM_MATH_CM33
 #include "arm_math.h"
+
 
 
 /* USER CODE END Includes */
@@ -61,11 +63,13 @@
 // --- Physical Constants ---
 #define SPEED_OF_SOUND      343.0f
 // Distance between ADJACENT microphones in the linear array.
-#define MIC_ADJACENT_DISTANCE 0.035 // e.g., 10 cm, 3.5 cm
+#define MIC_ADJACENT_DISTANCE 0.1 // e.g., 10 cm, 3.5 cm
 
 #ifndef M_PI
 #define M_PI 3.14159265358979323846f
 #endif
+
+#define IIR_NUM_STAGES 2
 
 typedef struct UART_DataPacket{
     uint16_t header;
@@ -101,6 +105,25 @@ volatile uint8_t data_ready_flags = 0;
 volatile int32_t* processing_ptr_a = NULL;
 volatile int32_t* processing_ptr_b = NULL;
 float32_t average_angle;
+
+
+// --- IIR Filter Variables ---
+// Filter instance for each microphone channel
+arm_biquad_casd_df1_inst_f32 iir_filter_instances[NUM_MICS];
+
+// State buffer for each microphone's filter. Must be NUM_STAGES * 2 in size.
+float32_t iir_filter_states[NUM_MICS][IIR_NUM_STAGES * 2];
+
+// Coefficients for a 2-stage IIR band-pass filter (Butterworth)
+// Designed for Fs=48kHz, Passband: 300Hz - 3400Hz
+const float32_t iir_filter_coeffs[IIR_NUM_STAGES * 5] = {
+    // b0,    b1,      b2,      a1,      a2
+    0.0465f, 0,      -0.0465f, -1.892f,  0.9069f, // Stage 1
+    0.3479f, -0.6959f, 0.3479f, -1.1818f, 0.4908f  // Stage 2
+};
+
+
+
 // UART transmit buffer
 UART_DataPacket uart_tx_packet;
 
@@ -184,12 +207,18 @@ int main(void)
   MX_USB_OTG_FS_HCD_Init();
   MX_USART1_UART_Init();
   MX_ADC1_Init();
+  MX_DCACHE1_Init();
   /* USER CODE BEGIN 2 */
 
   if (arm_rfft_fast_init_f32(&fft_instance, FFT_SIZE) != ARM_MATH_SUCCESS) {
     HAL_GPIO_WritePin(led_blue_GPIO_Port, led_blue_Pin, GPIO_PIN_SET);  
   }
 
+  // Initialize the IIR filter for each microphone channel
+  for (int i = 0; i < NUM_MICS; i++) {
+    arm_biquad_cascade_df1_init_f32(&iir_filter_instances[i], IIR_NUM_STAGES, iir_filter_coeffs, iir_filter_states[i]);
+  	arm_biquad_cascade_df1_f32(&iir_filter_instances[i], mic_buffers[i], mic_buffers[i], FFT_SIZE);
+  }
     // Start SAI audio capture for BOTH blocks
 
   if (HAL_SAI_Receive_DMA(&hsai_BlockA1, (uint8_t*)sai_a_dma_buffer, SAI_RX_BUFFER_SIZE * 2) != HAL_OK) {
@@ -317,7 +346,7 @@ void PeriphCommonClock_Config(void)
   PeriphClkInit.PLL2.PLL2Q = 2;
   PeriphClkInit.PLL2.PLL2R = 2;
   PeriphClkInit.PLL2.PLL2RGE = RCC_PLLVCIRANGE_1;
-  PeriphClkInit.PLL2.PLL2FRACN = 2048;
+  PeriphClkInit.PLL2.PLL2FRACN = 3072;
   PeriphClkInit.PLL2.PLL2ClockOut = RCC_PLL2_DIVP;
   if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInit) != HAL_OK)
   {
@@ -358,6 +387,7 @@ void process_audio_data(void)
 {
     static uint8_t tx_cycle_counter = 0;
     float32_t all_correlation_outputs[NUM_PAIRS][FFT_SIZE];
+    float32_t dc_offset;
 
 //    SCB_InvalidateDCache_by_Addr((uint32_t*)processing_ptr_a, SAI_RX_BUFFER_SIZE * sizeof(int32_t));
 //    SCB_InvalidateDCache_by_Addr((uint32_t*)processing_ptr_b, SAI_RX_BUFFER_SIZE * sizeof(int32_t));
@@ -369,25 +399,41 @@ void process_audio_data(void)
         mic_buffers[3][i] = (float32_t)(processing_ptr_b[i * 2 + 1] >> 8);
     }
 
-    int16_t lags[NUM_PAIRS];
-    lags[0] = calculate_tdoa_lag(mic_buffers[0], mic_buffers[1], all_correlation_outputs[0]);
-    lags[1] = calculate_tdoa_lag(mic_buffers[1], mic_buffers[2], all_correlation_outputs[1]);
-    lags[2] = calculate_tdoa_lag(mic_buffers[2], mic_buffers[3], all_correlation_outputs[2]);
+    // --- Step 2: Remove DC offset ---
+    // NOTE: The IIR filter has been temporarily disabled to debug instability.
+    // We will only perform DC offset removal for now.
+    for (int i = 0; i < NUM_MICS; i++) {
+    	// Calculate the DC offset (mean) of the buffer
+    	arm_mean_f32(mic_buffers[i], FFT_SIZE, &dc_offset);
 
+    	// Subtract the DC offset from every sample in the buffer
+    	arm_offset_f32(mic_buffers[i], -dc_offset, mic_buffers[i], FFT_SIZE);
+    }
+    // --- Calculate TDOA lag for adjacent microphone pairs ---
+    int16_t lags[NUM_PAIRS];
+    lags[0] = calculate_tdoa_lag(mic_buffers[0], mic_buffers[1], all_correlation_outputs[0]); // Pair 1-2
+    lags[1] = calculate_tdoa_lag(mic_buffers[1], mic_buffers[2], all_correlation_outputs[1]); // Pair 2-3
+    lags[2] = calculate_tdoa_lag(mic_buffers[2], mic_buffers[3], all_correlation_outputs[2]); // Pair 3-4
+
+    // --- Convert each lag into an angle and average the results ---
     float32_t angles[NUM_PAIRS];
     float32_t angle_sum = 0.0f;
     uint8_t valid_pairs = 0;
+
     for (int i = 0; i < NUM_PAIRS; i++) {
+        // All pairs use the same adjacent distance for this calculation
         angles[i] = calculate_angle_from_lag(lags[i], MIC_ADJACENT_DISTANCE);
+        // A simple check to exclude potentially invalid angles from averaging
         if (angles[i] > 0.0f && angles[i] < 180.0f) {
              angle_sum += angles[i];
              valid_pairs++;
         }
     }
     
-    average_angle = (valid_pairs > 0) ? (angle_sum / valid_pairs) : 0.0f;
+    // Only calculate an average if all 3 pairs produce a valid angle.
+    average_angle = (valid_pairs == NUM_PAIRS) ? (angle_sum / NUM_PAIRS) : average_angle;
     
-    // Check if it's time to transmit
+    // --- Check if it's time to transmit ---
     tx_cycle_counter++;
     if (tx_cycle_counter >= UART_TX_CYCLE_INTERVAL) {
         transmit_uart_data(average_angle, lags, all_correlation_outputs);
