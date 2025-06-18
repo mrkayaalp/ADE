@@ -100,7 +100,7 @@ uint32_t time_diff_ms = 0; // Time difference in milliseconds for timestamping
 volatile uint8_t data_ready_flags = 0;
 volatile int32_t* processing_ptr_a = NULL;
 volatile int32_t* processing_ptr_b = NULL;
-
+float32_t average_angle;
 // UART transmit buffer
 UART_DataPacket uart_tx_packet;
 
@@ -385,7 +385,7 @@ void process_audio_data(void)
         }
     }
     
-    float32_t average_angle = (valid_pairs > 0) ? (angle_sum / valid_pairs) : 0.0f;
+    average_angle = (valid_pairs > 0) ? (angle_sum / valid_pairs) : 0.0f;
     
     // Check if it's time to transmit
     tx_cycle_counter++;
